@@ -48,11 +48,15 @@ calendario AS (
 ),
 
 vendas_diarias AS (
-    -- Soma por dia ANTES do join com o calendario - varios pedidos no
-    -- mesmo dia precisam virar uma linha so, senao o LEFT JOIN duplica a
-    -- data do calendario. Filtro de canal aqui dentro, nunca num WHERE
-    -- depois do LEFT JOIN (isso eliminaria justamente os dias sem venda
-    -- que o calendario deveria preservar).
+    -- Soma por dia ANTES do join com o calendario, garantindo que cada
+    -- data chegue no calendario com uma unica linha. O JOIN em si nao
+    -- corromperia a soma (daria pra juntar primeiro e agrupar por data
+    -- depois) - o problema seria calcular a media direto na granularidade
+    -- de pedido/linha do JOIN, sem antes reduzir pra uma linha por data,
+    -- que e a granularidade que a media por dia da semana exige. Filtro
+    -- de canal aqui dentro, nunca num WHERE depois do LEFT JOIN (isso
+    -- eliminaria justamente os dias sem venda que o calendario deveria
+    -- preservar).
     SELECT
         placed_at::date AS data,
         SUM(total) AS venda_diaria
