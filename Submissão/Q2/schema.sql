@@ -1,292 +1,289 @@
--- schema.sql gerado automaticamente por infer_schema.py
--- Fonte: 24 arquivos CSV em ../../data/raw/1-lh_nautical_csv
--- Destino: PostgreSQL. Camada de ingestao bruta (landing) - sem PRIMARY KEY,
--- FOREIGN KEY ou NOT NULL: o objetivo e nao rejeitar nenhuma linha real na
--- carga da Q3. Cada coluna traz um comentario com o motivo da tipagem
--- (override semantico explicito ou evidencia da varredura completa do CSV).
--- Ver o cabecalho deste script para o raciocinio completo da inferencia.
-
+-- schema.sql gerado por infer_schema.py a partir de 24 CSVs em data/raw/1-lh_nautical_csv
+-- Camada de ingestão bruta (landing): sem PRIMARY KEY/FOREIGN KEY/NOT NULL,
+-- para não rejeitar nenhuma linha real na carga da Q3.
+-- Overrides semânticos (identificador tratado como TEXT mesmo parecendo número)
+-- e o raciocínio completo da inferência: ver infer_schema.py.
 
 CREATE TABLE "addresses" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "customer_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "address_type" TEXT, -- valores mistos ou fora dos formatos acima
-    "postal_code" TEXT, -- CEP - identificador geografico; ja e texto por evidencia (formato com hifen), mantido explicito
-    "street" TEXT, -- valores mistos ou fora dos formatos acima
-    "number" TEXT, -- numero do endereco - pode conter 'S/N' ou complemento no futuro; nao e usado em operacao aritmetica
-    "complement" TEXT, -- valores mistos ou fora dos formatos acima
-    "district" TEXT, -- valores mistos ou fora dos formatos acima
-    "city" TEXT, -- valores mistos ou fora dos formatos acima
-    "state" TEXT, -- valores mistos ou fora dos formatos acima
-    "country" TEXT, -- valores mistos ou fora dos formatos acima
-    "is_primary" BOOLEAN -- 100% dos valores sao TRUE/FALSE
+    "id" BIGINT,
+    "customer_id" BIGINT,
+    "address_type" TEXT,
+    "postal_code" TEXT,
+    "street" TEXT,
+    "number" TEXT,
+    "complement" TEXT,
+    "district" TEXT,
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "is_primary" BOOLEAN
 );
 
 CREATE TABLE "attributes" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "name" TEXT, -- valores mistos ou fora dos formatos acima
-    "data_type" TEXT -- valores mistos ou fora dos formatos acima
+    "id" BIGINT,
+    "name" TEXT,
+    "data_type" TEXT
 );
 
 CREATE TABLE "brands" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "name" TEXT, -- valores mistos ou fora dos formatos acima
-    "country" TEXT, -- valores mistos ou fora dos formatos acima
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "name" TEXT,
+    "country" TEXT,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "categories" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "name" TEXT, -- valores mistos ou fora dos formatos acima
-    "slug" TEXT, -- valores mistos ou fora dos formatos acima
-    "parent_category_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "name" TEXT,
+    "slug" TEXT,
+    "parent_category_id" BIGINT,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "customers" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "person_type" TEXT, -- valores mistos ou fora dos formatos acima
-    "legal_name" TEXT, -- valores mistos ou fora dos formatos acima
-    "trade_name" TEXT, -- valores mistos ou fora dos formatos acima
-    "tax_id" TEXT, -- CPF/CNPJ - documento, nao quantidade (ja seria pego pela guarda de zero a esquerda; mantido explicito)
-    "state_registration" TEXT, -- inscricao estadual - pode ser 'ISENTO'; ja e texto por evidencia, mantido explicito
-    "email" TEXT, -- valores mistos ou fora dos formatos acima
-    "phone" TEXT, -- telefone - identificador de contato, nao quantidade
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "person_type" TEXT,
+    "legal_name" TEXT,
+    "trade_name" TEXT,
+    "tax_id" TEXT,
+    "state_registration" TEXT,
+    "email" TEXT,
+    "phone" TEXT,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "employees" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "full_name" TEXT, -- valores mistos ou fora dos formatos acima
-    "cpf" TEXT, -- CPF - documento; amostra atual (15 linhas) nao tem zero a esquerda por coincidencia, nao por garantia
-    "email" TEXT, -- valores mistos ou fora dos formatos acima
-    "role" TEXT, -- valores mistos ou fora dos formatos acima
-    "primary_location_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "hire_date" DATE, -- 100% no formato YYYY-MM-DD
-    "termination_date" DATE, -- 100% no formato YYYY-MM-DD
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "full_name" TEXT,
+    "cpf" TEXT,
+    "email" TEXT,
+    "role" TEXT,
+    "primary_location_id" BIGINT,
+    "hire_date" DATE,
+    "termination_date" DATE,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "fiscal_invoices" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "order_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "nfe_number" TEXT, -- numero da NF-e - identificador; ja e texto por evidencia (prefixo NFE), mantido explicito
-    "nfe_access_key" TEXT, -- chave de acesso da NF-e (44 digitos) - identificador, nao quantidade
-    "series" TEXT, -- serie da NF-e - codigo fiscal, nao quantidade; hoje e pega pela guarda de zero a esquerda ('001'), mas um arquivo futuro com serie '1' sem zero passaria batido sem este override explicito
-    "issued_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "status" TEXT, -- valores mistos ou fora dos formatos acima
-    "total_amount" NUMERIC(8,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
-    "xml_storage_uri" TEXT, -- valores mistos ou fora dos formatos acima
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "order_id" BIGINT,
+    "nfe_number" TEXT,
+    "nfe_access_key" TEXT,
+    "series" TEXT,
+    "issued_at" TIMESTAMP,
+    "status" TEXT,
+    "total_amount" NUMERIC,
+    "xml_storage_uri" TEXT,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "goods_receipt_items" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "goods_receipt_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "purchase_order_item_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "quantity_received" NUMERIC(5,3) -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 3 decimal(is))
+    "id" BIGINT,
+    "goods_receipt_id" BIGINT,
+    "purchase_order_item_id" BIGINT,
+    "quantity_received" NUMERIC
 );
 
 CREATE TABLE "goods_receipts" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "purchase_order_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "received_by_employee_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "received_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "notes" TEXT, -- valores mistos ou fora dos formatos acima
-    "created_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "purchase_order_id" BIGINT,
+    "received_by_employee_id" BIGINT,
+    "received_at" TIMESTAMP,
+    "notes" TEXT,
+    "created_at" TIMESTAMP
 );
 
 CREATE TABLE "locations" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "name" TEXT, -- valores mistos ou fora dos formatos acima
-    "location_type" TEXT, -- valores mistos ou fora dos formatos acima
-    "postal_code" TEXT, -- CEP - identificador geografico; ja e texto por evidencia (formato com hifen), mantido explicito
-    "street" TEXT, -- valores mistos ou fora dos formatos acima
-    "number" TEXT, -- numero do endereco - pode conter 'S/N' ou complemento no futuro; nao e usado em operacao aritmetica (mesma regra de addresses.number - sao o mesmo conceito de negocio, so nao tinham override consistente)
-    "complement" TEXT, -- valores mistos ou fora dos formatos acima
-    "district" TEXT, -- valores mistos ou fora dos formatos acima
-    "city" TEXT, -- valores mistos ou fora dos formatos acima
-    "state" TEXT, -- valores mistos ou fora dos formatos acima
-    "country" TEXT, -- valores mistos ou fora dos formatos acima
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "name" TEXT,
+    "location_type" TEXT,
+    "postal_code" TEXT,
+    "street" TEXT,
+    "number" TEXT,
+    "complement" TEXT,
+    "district" TEXT,
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "order_items" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "order_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "product_variant_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "quantity" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "unit_price" NUMERIC(6,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 4 digito(s) inteiro(s) + 2 decimal(is))
-    "icms_rate" NUMERIC(4,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 2 decimal(is))
-    "ipi_rate" NUMERIC(4,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 2 decimal(is))
-    "line_total" NUMERIC(7,2) -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 5 digito(s) inteiro(s) + 2 decimal(is))
+    "id" BIGINT,
+    "order_id" BIGINT,
+    "product_variant_id" BIGINT,
+    "quantity" BIGINT,
+    "unit_price" NUMERIC,
+    "icms_rate" NUMERIC,
+    "ipi_rate" NUMERIC,
+    "line_total" NUMERIC
 );
 
 CREATE TABLE "orders" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "order_number" TEXT, -- numero do pedido - identificador; ja e texto por evidencia (prefixo SO-), mantido explicito
-    "channel" TEXT, -- valores mistos ou fora dos formatos acima
-    "customer_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "salesperson_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "location_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "status" TEXT, -- valores mistos ou fora dos formatos acima
-    "subtotal" NUMERIC(8,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
-    "discount_amount" NUMERIC(7,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 5 digito(s) inteiro(s) + 2 decimal(is))
-    "total" NUMERIC(8,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
-    "placed_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "order_number" TEXT,
+    "channel" TEXT,
+    "customer_id" BIGINT,
+    "salesperson_id" BIGINT,
+    "location_id" BIGINT,
+    "status" TEXT,
+    "subtotal" NUMERIC,
+    "discount_amount" NUMERIC,
+    "total" NUMERIC,
+    "placed_at" TIMESTAMP,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "payments" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "order_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "method" TEXT, -- valores mistos ou fora dos formatos acima
-    "installments" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "amount" NUMERIC(8,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
-    "status" TEXT, -- valores mistos ou fora dos formatos acima
-    "paid_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "order_id" BIGINT,
+    "method" TEXT,
+    "installments" BIGINT,
+    "amount" NUMERIC,
+    "status" TEXT,
+    "paid_at" TIMESTAMP,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "product_suppliers" (
-    "product_variant_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "supplier_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "supplier_sku" TEXT, -- SKU do fornecedor - identificador; ja e texto por evidencia, mantido explicito
-    "last_quoted_cost" NUMERIC(6,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 4 digito(s) inteiro(s) + 2 decimal(is))
-    "lead_time_days" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "is_preferred" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "product_variant_id" BIGINT,
+    "supplier_id" BIGINT,
+    "supplier_sku" TEXT,
+    "last_quoted_cost" NUMERIC,
+    "lead_time_days" BIGINT,
+    "is_preferred" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "product_variants" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "product_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "sku" TEXT, -- SKU - identificador; ja e texto por evidencia, mantido explicito
-    "barcode_ean" TEXT, -- codigo de barras EAN - identificador, nao quantidade
-    "sale_price" NUMERIC(6,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 4 digito(s) inteiro(s) + 2 decimal(is))
-    "cost_price" NUMERIC(6,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 4 digito(s) inteiro(s) + 2 decimal(is))
-    "weight_kg" NUMERIC(5,3), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 3 decimal(is))
-    "icms_rate" NUMERIC(4,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 2 decimal(is))
-    "ipi_rate" NUMERIC(4,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 2 decimal(is))
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "product_id" BIGINT,
+    "sku" TEXT,
+    "barcode_ean" TEXT,
+    "sale_price" NUMERIC,
+    "cost_price" NUMERIC,
+    "weight_kg" NUMERIC,
+    "icms_rate" NUMERIC,
+    "ipi_rate" NUMERIC,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "products" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "name" TEXT, -- valores mistos ou fora dos formatos acima
-    "description" TEXT, -- valores mistos ou fora dos formatos acima
-    "brand_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "category_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "ncm_code" TEXT, -- codigo NCM (classificacao fiscal de mercadoria) - identificador de categoria, nao quantidade
-    "unit_of_measure" TEXT, -- valores mistos ou fora dos formatos acima
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "name" TEXT,
+    "description" TEXT,
+    "brand_id" BIGINT,
+    "category_id" BIGINT,
+    "ncm_code" TEXT,
+    "unit_of_measure" TEXT,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "purchase_order_items" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "purchase_order_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "product_variant_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "quantity_ordered" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "unit_cost" NUMERIC(6,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 4 digito(s) inteiro(s) + 2 decimal(is))
-    "line_total" NUMERIC(8,2) -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
+    "id" BIGINT,
+    "purchase_order_id" BIGINT,
+    "product_variant_id" BIGINT,
+    "quantity_ordered" BIGINT,
+    "unit_cost" NUMERIC,
+    "line_total" NUMERIC
 );
 
 CREATE TABLE "purchase_orders" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "po_number" TEXT, -- numero da ordem de compra - identificador; ja e texto por evidencia (prefixo PO-), mantido explicito
-    "supplier_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "buyer_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "destination_location_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "status" TEXT, -- valores mistos ou fora dos formatos acima
-    "currency" TEXT, -- valores mistos ou fora dos formatos acima
-    "subtotal" NUMERIC(8,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
-    "total" NUMERIC(8,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
-    "placed_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "expected_delivery_at" DATE, -- 100% no formato YYYY-MM-DD
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "po_number" TEXT,
+    "supplier_id" BIGINT,
+    "buyer_id" BIGINT,
+    "destination_location_id" BIGINT,
+    "status" TEXT,
+    "currency" TEXT,
+    "subtotal" NUMERIC,
+    "total" NUMERIC,
+    "placed_at" TIMESTAMP,
+    "expected_delivery_at" DATE,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "return_items" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "return_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "order_item_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "quantity" NUMERIC(5,3), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 3 decimal(is))
-    "action" TEXT, -- valores mistos ou fora dos formatos acima
-    "exchange_variant_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "unit_refund_amount" NUMERIC(6,2) -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 4 digito(s) inteiro(s) + 2 decimal(is))
+    "id" BIGINT,
+    "return_id" BIGINT,
+    "order_item_id" BIGINT,
+    "quantity" NUMERIC,
+    "action" TEXT,
+    "exchange_variant_id" BIGINT,
+    "unit_refund_amount" NUMERIC
 );
 
 CREATE TABLE "returns" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "return_number" TEXT, -- numero da devolucao - identificador; ja e texto por evidencia (prefixo RT-), mantido explicito
-    "order_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "customer_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "received_at_location_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "status" TEXT, -- valores mistos ou fora dos formatos acima
-    "reason" TEXT, -- valores mistos ou fora dos formatos acima
-    "total_refund_amount" NUMERIC(7,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 5 digito(s) inteiro(s) + 2 decimal(is))
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "return_number" TEXT,
+    "order_id" BIGINT,
+    "customer_id" BIGINT,
+    "received_at_location_id" BIGINT,
+    "status" TEXT,
+    "reason" TEXT,
+    "total_refund_amount" NUMERIC,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "stock_levels" (
-    "product_variant_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "location_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "quantity_on_hand" NUMERIC(5,3), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 2 digito(s) inteiro(s) + 3 decimal(is))
-    "reorder_point" TEXT, -- coluna 100% vazia - sem evidencia, fallback documentado
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "product_variant_id" BIGINT,
+    "location_id" BIGINT,
+    "quantity_on_hand" NUMERIC,
+    "reorder_point" TEXT,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "stock_movements" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "product_variant_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "location_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "movement_type" TEXT, -- valores mistos ou fora dos formatos acima
-    "quantity" NUMERIC(6,3), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 3 digito(s) inteiro(s) + 3 decimal(is))
-    "reference_table" TEXT, -- valores mistos ou fora dos formatos acima
-    "reference_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "employee_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "notes" TEXT, -- valores mistos ou fora dos formatos acima
-    "occurred_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "created_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "product_variant_id" BIGINT,
+    "location_id" BIGINT,
+    "movement_type" TEXT,
+    "quantity" NUMERIC,
+    "reference_table" TEXT,
+    "reference_id" BIGINT,
+    "employee_id" BIGINT,
+    "notes" TEXT,
+    "occurred_at" TIMESTAMP,
+    "created_at" TIMESTAMP
 );
 
 CREATE TABLE "suppliers" (
-    "id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "legal_name" TEXT, -- valores mistos ou fora dos formatos acima
-    "trade_name" TEXT, -- valores mistos ou fora dos formatos acima
-    "country" TEXT, -- valores mistos ou fora dos formatos acima
-    "tax_id" TEXT, -- documento fiscal do fornecedor (formato varia por pais); ja e texto por evidencia, mantido explicito
-    "tax_id_type" TEXT, -- valores mistos ou fora dos formatos acima
-    "email" TEXT, -- valores mistos ou fora dos formatos acima
-    "phone" TEXT, -- telefone - identificador de contato, nao quantidade
-    "contact_name" TEXT, -- valores mistos ou fora dos formatos acima
-    "is_active" BOOLEAN, -- 100% dos valores sao TRUE/FALSE
-    "created_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
-    "updated_at" TIMESTAMP -- 100% no formato YYYY-MM-DD HH:MM:SS
+    "id" BIGINT,
+    "legal_name" TEXT,
+    "trade_name" TEXT,
+    "country" TEXT,
+    "tax_id" TEXT,
+    "tax_id_type" TEXT,
+    "email" TEXT,
+    "phone" TEXT,
+    "contact_name" TEXT,
+    "is_active" BOOLEAN,
+    "created_at" TIMESTAMP,
+    "updated_at" TIMESTAMP
 );
 
 CREATE TABLE "variant_attribute_values" (
-    "product_variant_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "attribute_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
-    "value" TEXT -- valores mistos ou fora dos formatos acima
+    "product_variant_id" BIGINT,
+    "attribute_id" BIGINT,
+    "value" TEXT
 );
