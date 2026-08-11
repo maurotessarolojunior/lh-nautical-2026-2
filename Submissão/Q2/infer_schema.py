@@ -57,6 +57,17 @@ rejeitar nenhuma linha real na carga da Q3, que carrega sem tratamento.
 Chaves e obrigatoriedades candidatas ficam documentadas em comentario por
 tabela, para promover a constraint depois, se e quando a integridade entre
 as 24 tabelas for validada - isso nao e um passo garantido do desafio.
+
+Precisao de NUMERIC(p,s) e dimensionada exatamente a partir do maior valor
+observado no lote atual de CSVs - correto para os dados de hoje, mas nao
+para uma rotina recorrente sem revisitar o schema a cada novo lote (trade-
+off de evolucao de schema, nao um erro da entrega atual).
+
+Validacoes defensivas incluidas, alem da inferencia em si: cabecalho vazio,
+nome de coluna vazio ou duplicado dentro do mesmo CSV, e uma checagem final
+de que toda chave em SEMANTIC_TEXT_OVERRIDES bateu com pelo menos uma
+coluna real encontrada (evita override "orfao" por erro de digitacao ou
+coluna renomeada/removida na fonte, silencioso ate aqui).
 """
 
 from __future__ import annotations
@@ -107,6 +118,8 @@ SEMANTIC_TEXT_OVERRIDES: dict[str, str] = {
     "orders.order_number": "numero do pedido - identificador; ja e texto por evidencia (prefixo SO-), mantido explicito",
     "purchase_orders.po_number": "numero da ordem de compra - identificador; ja e texto por evidencia (prefixo PO-), mantido explicito",
     "returns.return_number": "numero da devolucao - identificador; ja e texto por evidencia (prefixo RT-), mantido explicito",
+    "locations.number": "numero do endereco - pode conter 'S/N' ou complemento no futuro; nao e usado em operacao aritmetica (mesma regra de addresses.number - sao o mesmo conceito de negocio, so nao tinham override consistente)",
+    "fiscal_invoices.series": "serie da NF-e - codigo fiscal, nao quantidade; hoje e pega pela guarda de zero a esquerda ('001'), mas um arquivo futuro com serie '1' sem zero passaria batido sem este override explicito",
 }
 
 
@@ -118,7 +131,6 @@ class ColumnInference:
         self.empty = 0
         self.is_bool = True
         self.is_int = True
-        self.int_range_ok = True
         self.is_decimal = True
         self.is_date = True
         self.is_timestamp = True
@@ -224,12 +236,31 @@ def quote_ident(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
 
-def infer_table_schema(csv_path: Path) -> list[tuple[str, str, str]]:
-    """Varre um CSV inteiro e retorna [(coluna, tipo_sql, motivo), ...]."""
+def validate_header(csv_path: Path, header: list[str]) -> None:
+    """Falha cedo e com contexto se o cabecalho do CSV for suspeito."""
+    if not header:
+        raise ValueError(f"{csv_path.name}: cabecalho vazio")
+    if any(name == "" for name in header):
+        raise ValueError(f"{csv_path.name}: cabecalho tem coluna sem nome ({header})")
+    duplicates = {name for name in header if header.count(name) > 1}
+    if duplicates:
+        raise ValueError(f"{csv_path.name}: nomes de coluna duplicados no cabecalho: {duplicates}")
+
+
+def infer_table_schema(
+    csv_path: Path, matched_overrides: set[str]
+) -> list[tuple[str, str, str]]:
+    """Varre um CSV inteiro e retorna [(coluna, tipo_sql, motivo), ...].
+
+    matched_overrides recebe as chaves de SEMANTIC_TEXT_OVERRIDES realmente
+    encontradas neste CSV - usado depois para detectar overrides "orfaos"
+    (erro de digitacao, coluna renomeada ou removida na fonte).
+    """
     table_name = csv_path.stem
-    with csv_path.open(newline="", encoding="utf-8") as f:
+    with csv_path.open(newline="", encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         header = next(reader)
+        validate_header(csv_path, header)
         inferences = [ColumnInference() for _ in header]
         for line_number, row in enumerate(reader, start=2):
             if len(row) != len(header):
@@ -244,6 +275,7 @@ def infer_table_schema(csv_path: Path) -> list[tuple[str, str, str]]:
     for column_name, inference in zip(header, inferences):
         override_key = f"{table_name}.{column_name}"
         if override_key in SEMANTIC_TEXT_OVERRIDES:
+            matched_overrides.add(override_key)
             columns.append(("TEXT", SEMANTIC_TEXT_OVERRIDES[override_key], column_name))
         else:
             sql_type, reason = inference.decide()
@@ -280,10 +312,20 @@ def build_schema_sql(input_dir: Path) -> str:
 -- Ver o cabecalho deste script para o raciocinio completo da inferencia.
 """
     tables_sql = []
+    matched_overrides: set[str] = set()
     for csv_path in csv_paths:
         table_name = csv_path.stem
-        columns = infer_table_schema(csv_path)
+        columns = infer_table_schema(csv_path, matched_overrides)
         tables_sql.append(generate_create_table(table_name, columns))
+
+    orphan_overrides = set(SEMANTIC_TEXT_OVERRIDES) - matched_overrides
+    if orphan_overrides:
+        raise ValueError(
+            "SEMANTIC_TEXT_OVERRIDES tem chave(s) que nao batem com nenhuma coluna "
+            f"encontrada nos CSVs (erro de digitacao ou coluna renomeada/removida): "
+            f"{sorted(orphan_overrides)}"
+        )
+
     return header + "\n\n" + "\n\n".join(tables_sql) + "\n"
 
 

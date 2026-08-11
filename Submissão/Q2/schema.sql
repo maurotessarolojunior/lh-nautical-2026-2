@@ -1,5 +1,5 @@
 -- schema.sql gerado automaticamente por infer_schema.py
--- Fonte: 24 arquivos CSV em ../../Workspace/data/raw/1-lh_nautical_csv
+-- Fonte: 24 arquivos CSV em ../../data/raw/1-lh_nautical_csv
 -- Destino: PostgreSQL. Camada de ingestao bruta (landing) - sem PRIMARY KEY,
 -- FOREIGN KEY ou NOT NULL: o objetivo e nao rejeitar nenhuma linha real na
 -- carga da Q3. Cada coluna traz um comentario com o motivo da tipagem
@@ -80,7 +80,7 @@ CREATE TABLE "fiscal_invoices" (
     "order_id" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
     "nfe_number" TEXT, -- numero da NF-e - identificador; ja e texto por evidencia (prefixo NFE), mantido explicito
     "nfe_access_key" TEXT, -- chave de acesso da NF-e (44 digitos) - identificador, nao quantidade
-    "series" TEXT, -- valores mistos ou fora dos formatos acima
+    "series" TEXT, -- serie da NF-e - codigo fiscal, nao quantidade; hoje e pega pela guarda de zero a esquerda ('001'), mas um arquivo futuro com serie '1' sem zero passaria batido sem este override explicito
     "issued_at" TIMESTAMP, -- 100% no formato YYYY-MM-DD HH:MM:SS
     "status" TEXT, -- valores mistos ou fora dos formatos acima
     "total_amount" NUMERIC(8,2), -- 100% numerico decimal, sem zero a esquerda (maior forma observada: 6 digito(s) inteiro(s) + 2 decimal(is))
@@ -111,7 +111,7 @@ CREATE TABLE "locations" (
     "location_type" TEXT, -- valores mistos ou fora dos formatos acima
     "postal_code" TEXT, -- CEP - identificador geografico; ja e texto por evidencia (formato com hifen), mantido explicito
     "street" TEXT, -- valores mistos ou fora dos formatos acima
-    "number" BIGINT, -- 100% inteiro, sem zero a esquerda, dentro da faixa de BIGINT
+    "number" TEXT, -- numero do endereco - pode conter 'S/N' ou complemento no futuro; nao e usado em operacao aritmetica (mesma regra de addresses.number - sao o mesmo conceito de negocio, so nao tinham override consistente)
     "complement" TEXT, -- valores mistos ou fora dos formatos acima
     "district" TEXT, -- valores mistos ou fora dos formatos acima
     "city" TEXT, -- valores mistos ou fora dos formatos acima
