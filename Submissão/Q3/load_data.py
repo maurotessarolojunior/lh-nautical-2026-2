@@ -78,10 +78,16 @@ EXPECTED_FIDELITY = {
 }
 
 
+EXPECTED_CSV_COUNT = 24
+
+
 def discover_csv_files(input_dir: Path) -> list[Path]:
     csv_paths = sorted(input_dir.glob("*.csv"))
-    if not csv_paths:
-        raise SystemExit(f"nenhum CSV encontrado em {input_dir}")
+    if len(csv_paths) != EXPECTED_CSV_COUNT:
+        raise SystemExit(
+            f"esperados {EXPECTED_CSV_COUNT} CSVs em {input_dir}, encontrados {len(csv_paths)} "
+            "— carregar um subconjunto silenciosamente violaria a premissa da Q3"
+        )
     return csv_paths
 
 
@@ -356,10 +362,14 @@ def main() -> int:
                 return 1
 
             conn.commit()
-            print("\nCOMMIT — carga concluida, 24 tabelas reconciliadas, fidelidade confirmada.")
+            print(f"\nCOMMIT — carga concluida, {len(table_names)} tabelas reconciliadas, fidelidade confirmada.")
 
-            total = sum(c for t, c in csv_counts.items() if t in {"customers", "orders", "order_items", "payments"})
-            print(f"\nQ3.2 (customers + orders + order_items + payments): {total}")
+            # Q3.2 consultado no PostgreSQL depois do commit, nao somado a
+            # partir de csv_counts - a pergunta e sobre o banco carregado,
+            # entao a resposta precisa vir literalmente do banco carregado.
+            q32_tables = ["customers", "orders", "order_items", "payments"]
+            total = sum(count_database_records(cur, t) for t in q32_tables)
+            print(f"\nQ3.2 (customers + orders + order_items + payments, consultado no PostgreSQL): {total}")
             return 0
 
     except Exception as exc:
