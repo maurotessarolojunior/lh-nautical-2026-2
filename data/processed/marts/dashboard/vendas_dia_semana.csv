@@ -1,0 +1,8 @@
+ordem_dia,dia_semana,media_vendas,dias_calendario,dias_sem_venda,valor_total,destaque
+1,Segunda-feira,158241.15,365,7,57758021.43,Demais dias
+2,Terça-feira,166118.83,365,8,60633373.26,Demais dias
+3,Quarta-feira,173605.44,366,10,63539589.22,Demais dias
+4,Quinta-feira,157154.32,366,20,57518480.61,Pior média
+5,Sexta-feira,170193.68,365,10,62120694.25,Demais dias
+6,Sábado,164858.27,365,11,60173268.58,Demais dias
+7,Domingo,157616.13,365,12,57529887.95,Demais dias

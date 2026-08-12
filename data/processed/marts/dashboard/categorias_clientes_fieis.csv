@@ -1,0 +1,15 @@
+category_id,categoria,quantidade_itens,posicao
+8,Hélices,492,1
+3,Coletes Salva-Vidas,393,2
+5,Eletrônica Náutica,392,3
+7,Âncoras,387,4
+10,Iluminação,333,5
+12,Manutenção,330,6
+13,SEGURANÇA,325,7
+6,Velas,313,8
+11,Pintura Marítima,307,9
+9,Acessórios de Convés,305,10
+4,Motores,279,11
+14,Pesca,278,12
+1,Equipamentos,255,13
+2,Cabos,254,14
