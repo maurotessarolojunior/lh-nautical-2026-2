@@ -3,20 +3,23 @@
 PostgreSQL), um CREATE TABLE por arquivo. So biblioteca padrao (csv, re,
 datetime, pathlib) - nada de pandas/dask/polars.
 
-Por coluna, o tipo e decidido em ordem: override semantico explicito (lista
-abaixo, para identificadores/documentos que parecem numero mas nao sao) ->
-varredura de 100% das linhas (nunca amostra) testando, nessa ordem, vazio ->
-booleano -> inteiro -> decimal -> data -> timestamp -> texto. Um unico valor
-fora do padrao já reclassifica a coluna inteira para o proximo nivel mais
-permissivo. Zero a esquerda ("01234567890") bloqueia tanto o caminho inteiro
-quanto o decimal, porque qualquer tipo numerico do Postgres perderia esse
-zero silenciosamente na leitura de volta.
+Fluxo linear, um passo de cada vez:
+1. ler o CSV inteiro (sem amostragem);
+2. organizar os valores de cada coluna numa lista;
+3. inferir o tipo de cada coluna (funcao unica, regras testadas em ordem
+   com all() - o primeiro caso em que TODOS os valores da coluna passam
+   no teste "vence");
+4. gerar o CREATE TABLE da tabela;
+5. gravar tudo em schema.sql.
+
+Zero a esquerda ("01234567890") bloqueia BIGINT e NUMERIC, porque qualquer
+tipo numerico do Postgres perderia esse zero silenciosamente na leitura de
+volta. Identificadores que parecem numero mas sao documento/codigo (CPF,
+chave de NF-e, etc.) tem um override explicito para TEXT, comentado ao lado
+de cada entrada em OVERRIDES_TEXTO.
 
 Sem PRIMARY KEY, FOREIGN KEY ou NOT NULL: este schema.sql e uma camada de
 ingestao bruta, o objetivo e nao rejeitar nenhuma linha real na carga da Q3.
-
-O motivo de cada override semantico esta comentado ao lado da propria
-entrada, em OVERRIDES_TEXTO abaixo.
 """
 
 from __future__ import annotations
@@ -62,16 +65,25 @@ OVERRIDES_TEXTO = {
 }
 
 
-def novo_estado() -> dict:
-    return {
-        "total": 0,
-        "vazios": 0,
-        "bool": True,
-        "inteiro": True,
-        "decimal": True,
-        "data": True,
-        "timestamp": True,
-    }
+# --- Passo 3: predicados usados pela inferência (um por tipo candidato) ----
+
+
+def tem_zero_a_esquerda(valor: str) -> bool:
+    return bool(RE_ZERO_A_ESQUERDA.match(valor))
+
+
+def eh_inteiro_seguro(valor: str) -> bool:
+    """Inteiro sem zero à esquerda e dentro do limite do BIGINT."""
+    if tem_zero_a_esquerda(valor) or not RE_INTEIRO.match(valor):
+        return False
+    return BIGINT_MIN <= int(valor) <= BIGINT_MAX
+
+
+def eh_numerico(valor: str) -> bool:
+    """Inteiro ou decimal, sem zero à esquerda (mesmo motivo do BIGINT)."""
+    if tem_zero_a_esquerda(valor):
+        return False
+    return bool(RE_INTEIRO.match(valor) or RE_DECIMAL.match(valor))
 
 
 def eh_data(valor: str) -> bool:
@@ -94,77 +106,57 @@ def eh_timestamp(valor: str) -> bool:
         return False
 
 
-def observar(estado: dict, valor: str) -> None:
-    """Atualiza o estado da coluna com um valor por vez (varredura em fluxo,
-    sem acumular os valores da coluna inteira em memória)."""
-    estado["total"] += 1
-    if valor == "":
-        estado["vazios"] += 1
-        return
+def inferir_tipo(valores: list[str]) -> str:
+    """Testa os candidatos em ordem, do mais restrito ao mais permissivo.
+    O primeiro tipo em que TODOS os valores da coluna passam no teste
+    (all()) é o escolhido; se nenhum servir, a coluna vira TEXT."""
+    preenchidos = [v for v in valores if v != ""]
 
-    if valor not in VALORES_BOOL:
-        estado["bool"] = False
-
-    if RE_ZERO_A_ESQUERDA.match(valor):
-        estado["inteiro"] = False
-        estado["decimal"] = False
-    else:
-        parece_inteiro = bool(RE_INTEIRO.match(valor))
-        parece_decimal = bool(RE_DECIMAL.match(valor))
-
-        if parece_inteiro:
-            if not (BIGINT_MIN <= int(valor) <= BIGINT_MAX):
-                estado["inteiro"] = False
-        else:
-            estado["inteiro"] = False
-
-        if not (parece_inteiro or parece_decimal):
-            estado["decimal"] = False
-
-    if estado["data"] and not eh_data(valor):
-        estado["data"] = False
-    if estado["timestamp"] and not eh_timestamp(valor):
-        estado["timestamp"] = False
-
-
-def decidir_tipo(estado: dict) -> str:
-    if estado["total"] - estado["vazios"] == 0:
-        return "TEXT"  # coluna 100% vazia, sem evidência
-    if estado["bool"]:
+    if not preenchidos:
+        return "TEXT"  # coluna 100% vazia, sem evidência pra decidir
+    if all(v in VALORES_BOOL for v in preenchidos):
         return "BOOLEAN"
-    if estado["inteiro"]:
+    if all(eh_inteiro_seguro(v) for v in preenchidos):
         return "BIGINT"
-    if estado["decimal"]:
+    if all(eh_numerico(v) for v in preenchidos):
         return "NUMERIC"
-    if estado["data"]:
+    if all(eh_data(v) for v in preenchidos):
         return "DATE"
-    if estado["timestamp"]:
+    if all(eh_timestamp(v) for v in preenchidos):
         return "TIMESTAMP"
     return "TEXT"
 
 
-def ler_csv_e_inferir(caminho: Path) -> list[tuple[str, str]]:
-    """Varre um CSV inteiro e retorna [(coluna, tipo_sql), ...]."""
-    nome_tabela = caminho.stem
+def tipo_da_coluna(nome_tabela: str, nome_coluna: str, valores: list[str]) -> str:
+    """Override semântico primeiro; só chama a inferência se a coluna não
+    estiver na lista de identificadores que precisam ficar como TEXT."""
+    if f"{nome_tabela}.{nome_coluna}" in OVERRIDES_TEXTO:
+        return "TEXT"
+    return inferir_tipo(valores)
+
+
+# --- Passos 1 e 2: ler o CSV inteiro e organizar os valores por coluna -----
+
+
+def ler_valores_por_coluna(caminho: Path) -> tuple[list[str], list[list[str]]]:
     with caminho.open(newline="", encoding="utf-8-sig") as f:
         leitor = csv.reader(f)
         cabecalho = next(leitor)
-        estados = [novo_estado() for _ in cabecalho]
+        valores_por_coluna: list[list[str]] = [[] for _ in cabecalho]
+
         for numero_linha, linha in enumerate(leitor, start=2):
             if len(linha) != len(cabecalho):
                 raise ValueError(
                     f"{caminho.name}, linha {numero_linha}: {len(linha)} campos, "
                     f"esperado {len(cabecalho)}"
                 )
-            for valor, estado in zip(linha, estados):
-                observar(estado, valor)
+            for valores_da_coluna, valor in zip(valores_por_coluna, linha):
+                valores_da_coluna.append(valor)
 
-    colunas = []
-    for nome_coluna, estado in zip(cabecalho, estados):
-        override = OVERRIDES_TEXTO.get(f"{nome_tabela}.{nome_coluna}")
-        tipo = "TEXT" if override else decidir_tipo(estado)
-        colunas.append((nome_coluna, tipo))
-    return colunas
+    return cabecalho, valores_por_coluna
+
+
+# --- Passo 4: montar o CREATE TABLE a partir dos tipos já decididos -------
 
 
 def gerar_create_table(nome_tabela: str, colunas: list[tuple[str, str]]) -> str:
@@ -177,15 +169,28 @@ def gerar_create_table(nome_tabela: str, colunas: list[tuple[str, str]]) -> str:
     return "\n".join(linhas)
 
 
+def processar_csv(caminho: Path) -> str:
+    """Une os passos 1 a 4 para um único CSV: lê, organiza por coluna,
+    infere o tipo de cada uma e devolve o CREATE TABLE pronto."""
+    nome_tabela = caminho.stem
+    cabecalho, valores_por_coluna = ler_valores_por_coluna(caminho)
+
+    colunas = [
+        (nome_coluna, tipo_da_coluna(nome_tabela, nome_coluna, valores))
+        for nome_coluna, valores in zip(cabecalho, valores_por_coluna)
+    ]
+    return gerar_create_table(nome_tabela, colunas)
+
+
+# --- Passo 5: rodar para todos os CSVs e gravar o schema.sql --------------
+
+
 def main() -> None:
     caminhos_csv = sorted(PASTA_CSVS.glob("*.csv"))
     if not caminhos_csv:
         raise SystemExit(f"nenhum CSV encontrado em {PASTA_CSVS}")
 
-    blocos = []
-    for caminho in caminhos_csv:
-        colunas = ler_csv_e_inferir(caminho)
-        blocos.append(gerar_create_table(caminho.stem, colunas))
+    blocos = [processar_csv(caminho) for caminho in caminhos_csv]
 
     cabecalho_arquivo = (
         f"-- schema.sql gerado por infer_schema.py a partir de {len(caminhos_csv)} CSVs em data/raw/1-lh_nautical_csv\n"
