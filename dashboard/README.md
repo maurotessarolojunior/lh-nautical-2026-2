@@ -1,18 +1,32 @@
 # Dashboard — LH Nautical 2026.2
 
-Material complementar obrigatório do desafio: um painel para a diretoria fictícia da LH Nautical, sintetizando os resultados já validados nas Q1 e Q4–Q7. Esta pasta contém o código que prepara os dados, a documentação e (depois da montagem visual) o PDF final. Os dados em si não ficam aqui — ver "Onde estão os dados" abaixo.
+Material complementar obrigatório do desafio: um painel para a diretoria fictícia da LH Nautical, sintetizando os resultados já validados nas Q1 e Q4–Q7. **Status: concluído** — painel construído no Looker Studio e PDF final exportado. Esta pasta contém o código que prepara os dados, a documentação e o produto visual. Os dados em si (os 6 CSVs consumidos pelo painel) não ficam aqui — ver "Onde estão os dados" abaixo.
 
 ## Onde estão os dados
 
 ```text
-data/raw/1-lh_nautical_csv/          → CSVs originais do desafio (24 arquivos)
-data/processed/marts/dashboard/      → 6 extratos analíticos, prontos para o Looker Studio
-dashboard/gerar_dados.py             → script que gera os extratos a partir dos CSVs brutos
-dashboard/README.md                  → este arquivo
-dashboard/LH_Nautical_2026_2_Dashboard.pdf → PDF final (adicionado depois da montagem no Looker Studio)
+data/raw/1-lh_nautical_csv/                → CSVs originais do desafio (24 arquivos)
+data/processed/marts/dashboard/            → 6 extratos analíticos, consumidos pelo painel
+dashboard/gerar_dados.py                   → script que gera os extratos a partir dos CSVs brutos
+dashboard/README.md                        → este arquivo
+dashboard/LH_Nautical_2026_2_Dashboard.pdf → PDF final, exportado do Looker Studio
 ```
 
-Essa separação é uma decisão consciente de organização, não uma arquitetura adicionada para parecer mais sofisticada: `data/processed/marts/dashboard/` guarda dados prontos para consumo; `dashboard/` guarda código, documentação e o produto visual. Não existe camada `stage`/`intermediate` porque não há necessidade real dela neste desafio — ver "Linhagem dos dados" abaixo.
+Essa separação é uma decisão consciente de organização, não uma arquitetura adicionada para parecer mais sofisticada: `data/processed/marts/dashboard/` guarda dados prontos para consumo; `dashboard/` guarda código, documentação e o produto visual — inclusive depois do painel pronto, o PDF fica em `dashboard/`, não junto dos CSVs. Não existe camada `stage`/`intermediate` porque não há necessidade real dela neste desafio — ver "Linhagem dos dados" abaixo.
+
+## Painel no Looker Studio
+
+PDF final: [`LH_Nautical_2026_2_Dashboard.pdf`](LH_Nautical_2026_2_Dashboard.pdf) (3 páginas, formato 16:9).
+
+1. **Visão geral de vendas** — cartões de valor total registrado, pedidos, clientes e ticket médio; evolução mensal do valor registrado; valor por canal; pedidos por status.
+2. **Clientes e operação física** — Top 10 clientes fiéis por ticket médio, categorias mais consumidas por esse grupo, e média de vendas físicas por dia da semana (dias sem venda incluídos no cálculo, Quinta-feira destacada como pior média).
+3. **Previsão e recomendação** — previsão trimestral e MAE da Q6 (real vs. previsto por mês), e o ranking dos 5 produtos mais similares ao item de referência da Q7.
+
+O painel consome diretamente os seis CSVs materializados em `data/processed/marts/dashboard/` — nenhum visual foi construído a partir de uma consulta refeita dentro do Looker Studio.
+
+### Por que cada CSV é uma fonte de dados independente no Looker Studio
+
+Os seis marts têm granularidades e schemas diferentes entre si (um pedido, um cliente do Top 10, uma categoria, um dia da semana, um mês, um produto recomendado — ver "Dicionário dos extratos" abaixo). Por isso cada CSV foi importado como um conjunto de dados próprio no Looker Studio, não unificado num só. A opção "Adicionar arquivo" dentro de um conjunto de dados já existente serve para acrescentar mais arquivos **compatíveis com o mesmo schema e o mesmo grão** (por exemplo, um novo lote de `pedidos_dashboard.csv` de um mês seguinte) — não para juntar marts diferentes num único conjunto, o que misturaria granularidades incompatíveis num mesmo conjunto de campos.
 
 ## Linhagem dos dados (de onde cada número vem)
 

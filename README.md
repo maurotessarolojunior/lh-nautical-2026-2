@@ -13,7 +13,7 @@ data/raw
 └── gerar_dados.py → marts em CSV → Looker Studio → PDF
 ```
 
-Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reutilizam as mesmas regras de negócio já validadas, mas não dependem fisicamente um do outro — nenhum lê a saída do outro. O Looker Studio e o PDF final são a etapa visual seguinte: os seis extratos do dashboard já estão gerados e validados, mas o painel ainda não foi construído.
+Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reutilizam as mesmas regras de negócio já validadas, mas não dependem fisicamente um do outro — nenhum lê a saída do outro. O dashboard está concluído: os seis extratos foram gerados e validados por `dashboard/gerar_dados.py`, o painel foi construído no Looker Studio a partir deles, e o PDF final está em [`dashboard/LH_Nautical_2026_2_Dashboard.pdf`](dashboard/LH_Nautical_2026_2_Dashboard.pdf).
 
 ## Estrutura do repositório
 
@@ -34,7 +34,8 @@ Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reuti
 │   └── Q7/                          # sistema de recomendação
 ├── dashboard/
 │   ├── gerar_dados.py               # gera os 6 extratos a partir dos CSVs brutos
-│   └── README.md                    # dicionário dos dados e decisão de arquitetura
+│   ├── README.md                    # dicionário dos dados e decisão de arquitetura
+│   └── LH_Nautical_2026_2_Dashboard.pdf   # painel final exportado do Looker Studio
 ├── requirements.txt
 └── README.md
 ```
@@ -111,7 +112,15 @@ Reiniciar o kernel e executar todas as células em ordem. As seções de Q1, Q4 
 | Q6 — Previsão de demanda | `Submissão/Q6/6.1.py`, `6.2.md`, `6.3.md` | Baseline de média móvel de 3 meses, avaliado walk-forward; soma prevista arredondada = `149`; MAE ≈ `19,4444` |
 | Q7 — Sistema de recomendação | `Submissão/Q7/7.1.py`, `7.2.md`, `7.3.md` | Produto mais similar a "Motor de Popa 1949": "Motor de Popa 5331" |
 
-**Dashboard:** os seis extratos analíticos (`data/processed/marts/dashboard/`) já foram gerados e validados por `dashboard/gerar_dados.py` — dicionário completo em `dashboard/README.md`. O painel no Looker Studio e o PDF final ainda não foram construídos; essa é a etapa visual seguinte.
+## Dashboard
+
+Painel construído no Looker Studio a partir dos seis extratos de `data/processed/marts/dashboard/` (gerados e validados por `dashboard/gerar_dados.py` — dicionário completo em `dashboard/README.md`). PDF final: [`dashboard/LH_Nautical_2026_2_Dashboard.pdf`](dashboard/LH_Nautical_2026_2_Dashboard.pdf).
+
+Três páginas:
+
+1. **Visão geral de vendas** — tamanho da operação (valor total, pedidos, clientes, ticket médio), evolução mensal, comparação por canal e distribuição por status de pedido.
+2. **Clientes e operação física** — Top 10 clientes fiéis por ticket médio, categorias mais consumidas por esse grupo, e a média de vendas físicas por dia da semana (com os dias sem venda incluídos no cálculo).
+3. **Previsão e recomendação** — demanda real vs. prevista pelo baseline da Q6 (com o MAE), e o ranking de produtos mais similares ao item de referência da Q7.
 
 ## Decisões técnicas
 
@@ -122,7 +131,8 @@ Reiniciar o kernel e executar todas as células em ordem. As seções de Q1, Q4 
 - **Q6 usa o baseline obrigatório do enunciado** (média móvel de 3 meses) com avaliação temporal walk-forward: cada previsão usa só meses com data estritamente anterior a ela, sem embaralhar treino e teste.
 - **Q7 usa uma matriz binária cliente × produto e a similaridade de cosseno do scikit-learn** (`cosine_similarity`), sem implementar a fórmula manualmente — a exclusão do produto de referência do ranking é feita pelo `product_id`, nunca por comparação de valor de similaridade.
 - **Nenhum filtro de status de pedido foi inventado em Q4, Q5, Q6, Q7 ou no dashboard.** O enunciado não define quais status (`paid`, `confirmed`, `cancelled`, `draft`) devem entrar em cada análise, e criar um filtro não solicitado mudaria os resultados sem base no que foi pedido.
-- **O dashboard final tem um caminho de dados separado do PostgreSQL, não um só.** `dashboard/gerar_dados.py` lê os CSVs brutos diretamente e materializa seis extratos analíticos em `data/processed/marts/dashboard/`, reproduzindo em pandas as mesmas regras já validadas na Q1 e nas Q4–Q7 — sem depender do banco estar de pé para gerar o material do Looker Studio. Não há camada `stage`/`intermediate`: `data/raw` já preserva a origem, a Q3 já materializa uma ingestão tipada no PostgreSQL, e as transformações do dashboard são pequenas o bastante para viver, legíveis, dentro de um único script. Dicionário completo dos extratos em `dashboard/README.md`.
+- **O dashboard final tem um caminho de dados separado do PostgreSQL, não um só.** `dashboard/gerar_dados.py` lê os CSVs brutos diretamente e materializa seis extratos analíticos em `data/processed/marts/dashboard/`, reproduzindo em pandas as mesmas regras já validadas na Q1 e nas Q4–Q7 — sem depender do banco estar de pé para gerar o material do Looker Studio. Não há camada `stage`/`intermediate`: `data/raw` já preserva a origem, a Q3 já materializa uma ingestão tipada no PostgreSQL, e as transformações do dashboard são pequenas o bastante para viver, legíveis, dentro de um único script.
+- **`data/processed/marts/dashboard/` e `dashboard/` continuam com responsabilidades separadas mesmo com o painel concluído.** O primeiro guarda os seis CSVs prontos para consumo; o segundo guarda o gerador, a documentação (`dashboard/README.md`, com o dicionário completo dos extratos) e o produto visual (o PDF final exportado do Looker Studio).
 
 ## Tecnologias utilizadas
 
@@ -135,8 +145,7 @@ Reiniciar o kernel e executar todas as células em ordem. As seções de Q1, Q4 
 | scikit-learn | similaridade de cosseno entre produtos (Q7) |
 | matplotlib | gráfico de vendas reais vs. previstas (Q6) |
 | Jupyter Notebook | relatório executável com o raciocínio de cada questão |
-
-O Looker Studio entrará nesta lista quando o painel visual for efetivamente construído.
+| Looker Studio | construção do painel visual (3 páginas) a partir dos seis marts, exportado em PDF |
 
 ## Premissas e limitações
 
