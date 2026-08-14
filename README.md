@@ -13,7 +13,7 @@ data/raw
 └── gerar_dados.py → marts em CSV → Looker Studio → PDF
 ```
 
-Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reutilizam as mesmas regras de negócio já validadas, mas não dependem fisicamente um do outro — nenhum lê a saída do outro. O dashboard está concluído: os seis extratos foram gerados e validados por `dashboard/gerar_dados.py`, o painel foi construído no Looker Studio a partir deles, e o PDF final está em [`dashboard/LH_Nautical_2026_2_Dashboard.pdf`](dashboard/LH_Nautical_2026_2_Dashboard.pdf).
+Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reutilizam as mesmas regras de negócio já validadas, mas não dependem fisicamente um do outro — nenhum lê a saída do outro. O dashboard está concluído: os seis extratos foram gerados e validados por `Submissão/Q8-Dashboard/gerar_dados.py`, o painel foi construído no Looker Studio a partir deles, e o PDF final está em [`Submissão/Q8-Dashboard/LH_Nautical_2026_2_Dashboard.pdf`](Submissão/Q8-Dashboard/LH_Nautical_2026_2_Dashboard.pdf).
 
 ## Estrutura do repositório
 
@@ -31,11 +31,8 @@ Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reuti
 │   ├── Q4/                          # análise de clientes
 │   ├── Q5/                          # dimensão de calendário
 │   ├── Q6/                          # previsão de demanda (baseline walk-forward)
-│   └── Q7/                          # sistema de recomendação
-├── dashboard/
-│   ├── gerar_dados.py               # gera os 6 extratos a partir dos CSVs brutos
-│   ├── README.md                    # dicionário dos dados e decisão de arquitetura
-│   └── LH_Nautical_2026_2_Dashboard.pdf   # painel final exportado do Looker Studio
+│   ├── Q7/                          # sistema de recomendação
+│   └── Q8-Dashboard/                # gerar_dados.py, README.md e PDF final do painel
 ├── requirements.txt
 └── README.md
 ```
@@ -87,7 +84,7 @@ Diferente de Q1/Q4/Q5, essas duas questões **não dependem do PostgreSQL** — 
 ### 5. Preparar os dados do dashboard
 
 ```bash
-python dashboard/gerar_dados.py
+python Submissão/Q8-Dashboard/gerar_dados.py
 ```
 
 Também lê os CSVs brutos diretamente (sem PostgreSQL), reproduz as regras já validadas da Q1 e das Q4–Q7, e grava os seis extratos em `data/processed/marts/dashboard/` — prontos para importar no Looker Studio.
@@ -114,7 +111,7 @@ Reiniciar o kernel e executar todas as células em ordem. As seções de Q1, Q4 
 
 ## Dashboard
 
-Painel construído no Looker Studio a partir dos seis extratos de `data/processed/marts/dashboard/` (gerados e validados por `dashboard/gerar_dados.py` — dicionário completo em `dashboard/README.md`). PDF final: [`dashboard/LH_Nautical_2026_2_Dashboard.pdf`](dashboard/LH_Nautical_2026_2_Dashboard.pdf).
+Painel construído no Looker Studio a partir dos seis extratos de `data/processed/marts/dashboard/` (gerados e validados por `Submissão/Q8-Dashboard/gerar_dados.py` — dicionário completo em `Submissão/Q8-Dashboard/README.md`). PDF final: [`Submissão/Q8-Dashboard/LH_Nautical_2026_2_Dashboard.pdf`](Submissão/Q8-Dashboard/LH_Nautical_2026_2_Dashboard.pdf).
 
 Três páginas:
 
@@ -131,8 +128,8 @@ Três páginas:
 - **Q6 usa o baseline obrigatório do enunciado** (média móvel de 3 meses) com avaliação temporal walk-forward: cada previsão usa só meses com data estritamente anterior a ela, sem embaralhar treino e teste.
 - **Q7 usa uma matriz binária cliente × produto e a similaridade de cosseno do scikit-learn** (`cosine_similarity`), sem implementar a fórmula manualmente — a exclusão do produto de referência do ranking é feita pelo `product_id`, nunca por comparação de valor de similaridade.
 - **Nenhum filtro de status de pedido foi inventado em Q4, Q5, Q6, Q7 ou no dashboard.** O enunciado não define quais status (`paid`, `confirmed`, `cancelled`, `draft`) devem entrar em cada análise, e criar um filtro não solicitado mudaria os resultados sem base no que foi pedido.
-- **O dashboard final tem um caminho de dados separado do PostgreSQL, não um só.** `dashboard/gerar_dados.py` lê os CSVs brutos diretamente e materializa seis extratos analíticos em `data/processed/marts/dashboard/`, reproduzindo em pandas as mesmas regras já validadas na Q1 e nas Q4–Q7 — sem depender do banco estar de pé para gerar o material do Looker Studio. Não há camada `stage`/`intermediate`: `data/raw` já preserva a origem, a Q3 já materializa uma ingestão tipada no PostgreSQL, e as transformações do dashboard são pequenas o bastante para viver, legíveis, dentro de um único script.
-- **`data/processed/marts/dashboard/` e `dashboard/` continuam com responsabilidades separadas mesmo com o painel concluído.** O primeiro guarda os seis CSVs prontos para consumo; o segundo guarda o gerador, a documentação (`dashboard/README.md`, com o dicionário completo dos extratos) e o produto visual (o PDF final exportado do Looker Studio).
+- **O dashboard final tem um caminho de dados separado do PostgreSQL, não um só.** `Submissão/Q8-Dashboard/gerar_dados.py` lê os CSVs brutos diretamente e materializa seis extratos analíticos em `data/processed/marts/dashboard/`, reproduzindo em pandas as mesmas regras já validadas na Q1 e nas Q4–Q7 — sem depender do banco estar de pé para gerar o material do Looker Studio. Não há camada `stage`/`intermediate`: `data/raw` já preserva a origem, a Q3 já materializa uma ingestão tipada no PostgreSQL, e as transformações do dashboard são pequenas o bastante para viver, legíveis, dentro de um único script.
+- **`data/processed/marts/dashboard/` e `Submissão/Q8-Dashboard/` continuam com responsabilidades separadas mesmo com o painel concluído.** O primeiro guarda os seis CSVs prontos para consumo; o segundo guarda o gerador, a documentação (`Submissão/Q8-Dashboard/README.md`, com o dicionário completo dos extratos) e o produto visual (o PDF final exportado do Looker Studio).
 
 ## Tecnologias utilizadas
 
