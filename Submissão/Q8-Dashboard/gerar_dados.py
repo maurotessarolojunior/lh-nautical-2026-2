@@ -22,7 +22,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-RAIZ_REPOSITORIO = Path(__file__).resolve().parents[1]
+RAIZ_REPOSITORIO = Path(__file__).resolve().parents[2]
 PASTA_CSVS = RAIZ_REPOSITORIO / "data" / "raw" / "1-lh_nautical_csv"
 PASTA_SAIDA = RAIZ_REPOSITORIO / "data" / "processed" / "marts" / "dashboard"
 

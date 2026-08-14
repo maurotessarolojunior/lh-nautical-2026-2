@@ -5,14 +5,14 @@ Material complementar obrigatório do desafio: um painel para a diretoria fictí
 ## Onde estão os dados
 
 ```text
-data/raw/1-lh_nautical_csv/                → CSVs originais do desafio (24 arquivos)
-data/processed/marts/dashboard/            → 6 extratos analíticos, consumidos pelo painel
-dashboard/gerar_dados.py                   → script que gera os extratos a partir dos CSVs brutos
-dashboard/README.md                        → este arquivo
-dashboard/LH_Nautical_2026_2_Dashboard.pdf → PDF final, exportado do Looker Studio
+data/raw/1-lh_nautical_csv/                              → CSVs originais do desafio (24 arquivos)
+data/processed/marts/dashboard/                          → 6 extratos analíticos, consumidos pelo painel
+Submissão/Q8-Dashboard/gerar_dados.py                    → script que gera os extratos a partir dos CSVs brutos
+Submissão/Q8-Dashboard/README.md                         → este arquivo
+Submissão/Q8-Dashboard/LH_Nautical_2026_2_Dashboard.pdf  → PDF final, exportado do Looker Studio
 ```
 
-Essa separação é uma decisão consciente de organização, não uma arquitetura adicionada para parecer mais sofisticada: `data/processed/marts/dashboard/` guarda dados prontos para consumo; `dashboard/` guarda código, documentação e o produto visual — inclusive depois do painel pronto, o PDF fica em `dashboard/`, não junto dos CSVs. Não existe camada `stage`/`intermediate` porque não há necessidade real dela neste desafio — ver "Linhagem dos dados" abaixo.
+Essa separação é uma decisão consciente de organização, não uma arquitetura adicionada para parecer mais sofisticada: `data/processed/marts/dashboard/` guarda dados prontos para consumo; `Submissão/Q8-Dashboard/` guarda código, documentação e o produto visual — inclusive depois do painel pronto, o PDF fica em `Submissão/Q8-Dashboard/`, não junto dos CSVs. Não existe camada `stage`/`intermediate` porque não há necessidade real dela neste desafio — ver "Linhagem dos dados" abaixo.
 
 ## Painel no Looker Studio
 
@@ -36,10 +36,10 @@ O desafio tem, hoje, **três caminhos reproduzíveis** a partir de `data/raw`, t
 data/raw/1-lh_nautical_csv/
 ├── Submissão/Q2 + Q3 → PostgreSQL tipado → SQL das Q1, Q4 e Q5
 ├── Submissão/Q6 + Q7 → pandas/scikit-learn → respostas e notebook
-└── dashboard/gerar_dados.py → data/processed/marts/dashboard/*.csv → Looker Studio
+└── Submissão/Q8-Dashboard/gerar_dados.py → data/processed/marts/dashboard/*.csv → Looker Studio
 ```
 
-`dashboard/gerar_dados.py` **lê os CSVs brutos diretamente** — não lê do PostgreSQL nem chama os scripts de `Submissão/`. Ele reproduz em pandas as mesmas regras de negócio já testadas e aprovadas na Q1 e nas Q4–Q7 (mesmas chaves de junção, mesmos filtros, mesma granularidade, mesmo desempate, mesmo baseline walk-forward da Q6, mesma matriz binária e cosseno da Q7), para que o dashboard não dependa do banco estar de pé nem da execução prévia dos scripts das submissões. Por isso o script valida cada extrato contra os valores já aprovados antes de gravar qualquer CSV — se algo divergir, ele falha com uma mensagem clara em vez de gravar um número errado silenciosamente.
+`Submissão/Q8-Dashboard/gerar_dados.py` **lê os CSVs brutos diretamente** — não lê do PostgreSQL nem chama os scripts de `Submissão/`. Ele reproduz em pandas as mesmas regras de negócio já testadas e aprovadas na Q1 e nas Q4–Q7 (mesmas chaves de junção, mesmos filtros, mesma granularidade, mesmo desempate, mesmo baseline walk-forward da Q6, mesma matriz binária e cosseno da Q7), para que o dashboard não dependa do banco estar de pé nem da execução prévia dos scripts das submissões. Por isso o script valida cada extrato contra os valores já aprovados antes de gravar qualquer CSV — se algo divergir, ele falha com uma mensagem clara em vez de gravar um número errado silenciosamente.
 
 Não há `stage`/`intermediate` porque, neste desafio, essas camadas não teriam função real: `data/raw` já preserva a origem sem tratamento; a Q3 já materializa uma camada de ingestão tipada e fiel à origem no PostgreSQL; e as transformações necessárias ao dashboard são pequenas o bastante para viver inteiras, de forma legível, dentro de `gerar_dados.py`. Uma evolução futura com uma ferramenta como dbt Core poderia unificar os três caminhos sobre o PostgreSQL — isso é um estudo pós-entrega, fora do escopo desta implementação.
 
@@ -49,7 +49,7 @@ A partir da raiz do repositório:
 
 ```bash
 source .venv/bin/activate
-python dashboard/gerar_dados.py
+python Submissão/Q8-Dashboard/gerar_dados.py
 ```
 
 O script lê `data/raw/1-lh_nautical_csv/`, recalcula os seis extratos, valida cada um contra os resultados já aprovados e grava (sobrescrevendo) os arquivos em `data/processed/marts/dashboard/`. Execução determinística: rodar mais de uma vez produz arquivos byte a byte idênticos, sem duplicar linhas.
