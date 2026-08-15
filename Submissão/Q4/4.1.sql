@@ -2,7 +2,7 @@
 --
 -- orders tem uma linha por pedido; order_items, uma por item. Por isso
 -- faturamento/frequencia vem de uma consulta que so olha "orders" (nunca
--- depois de JOIN com order_items, que multiplicaria o pedido por item), e a
+-- depois de join com order_items, que multiplicaria o pedido por item), e a
 -- diversidade de categorias vem de uma consulta separada, na cadeia de
 -- itens - as duas se juntam depois, por customer_id.
 --
@@ -12,78 +12,96 @@
 
 -- Consulta 1 - metricas por cliente e Top 10
 
-WITH metricas_pedidos AS (
-    SELECT
+with metricas_pedidos as (
+    select
         customer_id,
-        SUM(total) AS faturamento_total,
-        COUNT(id) AS frequencia,
-        SUM(total) / COUNT(id) AS ticket_medio
-    FROM orders
-    GROUP BY customer_id
+        sum(total) as faturamento_total,
+        count(id) as frequencia,
+        sum(total) / count(id) as ticket_medio
+    from orders
+    group by customer_id
 ),
 
-diversidade_clientes AS (
-    SELECT
-        o.customer_id,
-        COUNT(DISTINCT p.category_id) AS diversidade_categorias  -- DISTINCT: mesma categoria em varios produtos conta uma vez
-    FROM orders o
-    JOIN order_items oi      ON oi.order_id = o.id
-    JOIN product_variants pv ON pv.id = oi.product_variant_id
-    JOIN products p          ON p.id = pv.product_id
-    GROUP BY o.customer_id
+diversidade_clientes as (
+    select
+        orders.customer_id,
+        -- distinct: mesma categoria em varios produtos conta uma vez
+        count(distinct products.category_id) as diversidade_categorias
+    from orders
+    join order_items on
+        order_items.order_id = orders.id
+    join product_variants on
+        product_variants.id = order_items.product_variant_id
+    join products on
+        products.id = product_variants.product_id
+    group by orders.customer_id
 )
 
-SELECT
-    mp.customer_id,
-    ROUND(mp.faturamento_total, 2) AS faturamento_total,
-    mp.frequencia,
-    ROUND(mp.ticket_medio, 2)      AS ticket_medio,
-    dc.diversidade_categorias
-FROM metricas_pedidos mp
-JOIN diversidade_clientes dc ON dc.customer_id = mp.customer_id
-WHERE dc.diversidade_categorias >= 13
-ORDER BY mp.ticket_medio DESC, mp.customer_id ASC  -- ticket sem arredondar; desempate exigido pelo enunciado
-LIMIT 10;
+select
+    metricas_pedidos.customer_id,
+    round(metricas_pedidos.faturamento_total, 2) as faturamento_total,
+    metricas_pedidos.frequencia,
+    round(metricas_pedidos.ticket_medio, 2) as ticket_medio,
+    diversidade_clientes.diversidade_categorias
+from metricas_pedidos
+join diversidade_clientes on
+    diversidade_clientes.customer_id = metricas_pedidos.customer_id
+where diversidade_clientes.diversidade_categorias >= 13
+-- ticket sem arredondar; desempate exigido pelo enunciado
+order by metricas_pedidos.ticket_medio desc, metricas_pedidos.customer_id asc
+limit 10;
 
 
 -- Consulta 2 - categoria com maior quantidade de itens comprados pelo Top 10
 
-WITH metricas_pedidos AS (
-    SELECT customer_id, SUM(total) / COUNT(id) AS ticket_medio
-    FROM orders
-    GROUP BY customer_id
+with metricas_pedidos as (
+    select
+        customer_id,
+        sum(total) / count(id) as ticket_medio
+    from orders
+    group by customer_id
 ),
 
-diversidade_clientes AS (
-    SELECT
-        o.customer_id,
-        COUNT(DISTINCT p.category_id) AS diversidade_categorias
-    FROM orders o
-    JOIN order_items oi      ON oi.order_id = o.id
-    JOIN product_variants pv ON pv.id = oi.product_variant_id
-    JOIN products p          ON p.id = pv.product_id
-    GROUP BY o.customer_id
+diversidade_clientes as (
+    select
+        orders.customer_id,
+        count(distinct products.category_id) as diversidade_categorias
+    from orders
+    join order_items on
+        order_items.order_id = orders.id
+    join product_variants on
+        product_variants.id = order_items.product_variant_id
+    join products on
+        products.id = product_variants.product_id
+    group by orders.customer_id
 ),
 
-top_10 AS (
-    SELECT mp.customer_id
-    FROM metricas_pedidos mp
-    JOIN diversidade_clientes dc ON dc.customer_id = mp.customer_id
-    WHERE dc.diversidade_categorias >= 13
-    ORDER BY mp.ticket_medio DESC, mp.customer_id ASC
-    LIMIT 10
+top_10 as (
+    select metricas_pedidos.customer_id
+    from metricas_pedidos
+    join diversidade_clientes on
+        diversidade_clientes.customer_id = metricas_pedidos.customer_id
+    where diversidade_clientes.diversidade_categorias >= 13
+    order by metricas_pedidos.ticket_medio desc, metricas_pedidos.customer_id asc
+    limit 10
 )
 
-SELECT
-    c.id   AS category_id,
-    c.name AS categoria,
-    SUM(oi.quantity) AS quantidade_total  -- SUM(quantity), nao COUNT(*): item pode ter quantidade > 1
-FROM top_10 t
-JOIN orders o             ON o.customer_id = t.customer_id
-JOIN order_items oi        ON oi.order_id = o.id
-JOIN product_variants pv   ON pv.id = oi.product_variant_id
-JOIN products p            ON p.id = pv.product_id
-JOIN categories c          ON c.id = p.category_id
-GROUP BY c.id, c.name
-ORDER BY quantidade_total DESC, category_id ASC;
--- sem LIMIT: mostra as 14 categorias, confirmando que a 2a colocada (393) nao empata com a 1a (492)
+select
+    categories.id as category_id,
+    categories.name as categoria,
+    -- sum(quantity), nao count(*): item pode ter quantidade > 1
+    sum(order_items.quantity) as quantidade_total
+from top_10
+join orders on
+    orders.customer_id = top_10.customer_id
+join order_items on
+    order_items.order_id = orders.id
+join product_variants on
+    product_variants.id = order_items.product_variant_id
+join products on
+    products.id = product_variants.product_id
+join categories on
+    categories.id = products.category_id
+group by categories.id, categories.name
+order by quantidade_total desc, category_id asc;
+-- sem limit: mostra as 14 categorias, confirmando que a 2a colocada (393) nao empata com a 1a (492)

@@ -4,73 +4,74 @@
 -- venda registrada (ausencia de linha != valor zero) - e o erro que o
 -- estagiario cometeu ao agrupar direto em "orders".
 --
--- Periodo usa MIN/MAX(placed_at::date) observados no arquivo, nao
--- CURRENT_DATE: os limites vem do proprio arquivo (como o enunciado pede)
+-- Periodo usa min/max(placed_at::date) observados no arquivo, nao
+-- current_date: os limites vem do proprio arquivo (como o enunciado pede)
 -- e a consulta fica reproduzivel em qualquer dia que for executada.
 
-WITH limites AS (
-    SELECT
-        MIN(placed_at::date) AS data_inicial,
-        MAX(placed_at::date) AS data_final
-    FROM orders
+with limites as (
+    select
+        min(placed_at::date) as data_inicial,
+        max(placed_at::date) as data_final
+    from orders
 ),
 
-datas AS (
+datas as (
     -- Uma linha por dia do periodo, sem lacunas.
-    SELECT generate_series(data_inicial, data_final, INTERVAL '1 day')::date AS data
-    FROM limites
+    select generate_series(data_inicial, data_final, interval '1 day')::date as data
+    from limites
 ),
 
-calendario AS (
-    -- ISODOW (Segunda=1...Domingo=7); CASE em vez de TO_CHAR pra nao
+calendario as (
+    -- isodow (Segunda=1...Domingo=7); case em vez de to_char pra nao
     -- depender do locale do servidor.
-    SELECT
+    select
         data,
-        EXTRACT(ISODOW FROM data)::int AS numero_dia_semana,
-        CASE EXTRACT(ISODOW FROM data)::int
-            WHEN 1 THEN 'Segunda-feira'
-            WHEN 2 THEN 'Terça-feira'
-            WHEN 3 THEN 'Quarta-feira'
-            WHEN 4 THEN 'Quinta-feira'
-            WHEN 5 THEN 'Sexta-feira'
-            WHEN 6 THEN 'Sábado'
-            WHEN 7 THEN 'Domingo'
-        END AS dia_semana
-    FROM datas
+        extract(isodow from data)::int as numero_dia_semana,
+        case extract(isodow from data)::int
+            when 1 then 'Segunda-feira'
+            when 2 then 'Terça-feira'
+            when 3 then 'Quarta-feira'
+            when 4 then 'Quinta-feira'
+            when 5 then 'Sexta-feira'
+            when 6 then 'Sábado'
+            when 7 then 'Domingo'
+        end as dia_semana
+    from datas
 ),
 
-vendas_diarias AS (
+vendas_diarias as (
     -- Soma por dia antes do join (uma linha por data). Filtro de canal aqui
-    -- dentro, nunca num WHERE depois do LEFT JOIN - eliminaria os dias sem
+    -- dentro, nunca num where depois do left join - eliminaria os dias sem
     -- venda que o calendario deveria preservar.
-    SELECT
-        placed_at::date AS data,
-        SUM(total) AS venda_diaria
-    FROM orders
-    WHERE channel = 'pos'
-    GROUP BY placed_at::date
+    select
+        placed_at::date as data,
+        sum(total) as venda_diaria
+    from orders
+    where channel = 'pos'
+    group by placed_at::date
 ),
 
-calendario_com_vendas AS (
-    -- LEFT JOIN a partir do calendario preserva toda data; COALESCE
-    -- transforma o NULL da ausencia em 0 antes da media (AVG ignora NULL,
+calendario_com_vendas as (
+    -- left join a partir do calendario preserva toda data; coalesce
+    -- transforma o null da ausencia em 0 antes da media (avg ignora null,
     -- nao ignora zero).
-    SELECT
-        c.data,
-        c.numero_dia_semana,
-        c.dia_semana,
-        COALESCE(v.venda_diaria, 0) AS venda_diaria
-    FROM calendario c
-    LEFT JOIN vendas_diarias v ON v.data = c.data
+    select
+        calendario.data,
+        calendario.numero_dia_semana,
+        calendario.dia_semana,
+        coalesce(vendas_diarias.venda_diaria, 0) as venda_diaria
+    from calendario
+    left join vendas_diarias on
+        vendas_diarias.data = calendario.data
 )
 
-SELECT
+select
     numero_dia_semana,
     dia_semana,
-    COUNT(*) AS dias_no_calendario,
-    COUNT(*) FILTER (WHERE venda_diaria = 0) AS dias_sem_venda,
-    ROUND(AVG(venda_diaria), 2) AS media_vendas_diarias
-FROM calendario_com_vendas
-GROUP BY numero_dia_semana, dia_semana
-ORDER BY media_vendas_diarias ASC, numero_dia_semana ASC;
--- Sem LIMIT: mostra os 7 dias, confirma que nao ha empate perto do topo.
+    count(*) as dias_no_calendario,
+    count(*) filter (where venda_diaria = 0) as dias_sem_venda,
+    round(avg(venda_diaria), 2) as media_vendas_diarias
+from calendario_com_vendas
+group by numero_dia_semana, dia_semana
+order by media_vendas_diarias asc, numero_dia_semana asc;
+-- Sem limit: mostra os 7 dias, confirma que nao ha empate perto do topo.
