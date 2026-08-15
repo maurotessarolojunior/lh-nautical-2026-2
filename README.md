@@ -23,7 +23,7 @@ Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reuti
 │   ├── raw/1-lh_nautical_csv/       # os 24 CSVs originais do desafio
 │   └── processed/marts/dashboard/   # 6 extratos analíticos para o Looker Studio
 ├── notebooks/
-│   └── lh_nautical.ipynb            # raciocínio completo, questão por questão
+│   └── lh_nautical_mauro.ipynb      # raciocínio completo, questão por questão
 ├── Submissão/
 │   ├── Q1/                          # EDA da tabela orders
 │   ├── Q2/                          # inferência de schema (infer_schema.py, schema.sql)
@@ -92,7 +92,7 @@ Também lê os CSVs brutos diretamente (sem PostgreSQL), reproduz as regras já 
 ### 6. Executar o notebook
 
 ```bash
-jupyter notebook notebooks/lh_nautical.ipynb
+jupyter notebook notebooks/lh_nautical_mauro.ipynb
 ```
 
 Reiniciar o kernel e executar todas as células em ordem. As seções de Q1, Q4 e Q5 consultam o PostgreSQL já carregado pelos passos 2 e 3; as seções de Q6 e Q7 leem os CSVs brutos diretamente, como os scripts correspondentes.
