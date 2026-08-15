@@ -5,11 +5,13 @@ Material complementar obrigatório do desafio: um painel para a diretoria fictí
 ## Onde estão os dados
 
 ```text
-data/raw/1-lh_nautical_csv/                              → CSVs originais do desafio (24 arquivos)
-data/processed/marts/dashboard/                          → 6 extratos analíticos, consumidos pelo painel
-Submissão/Q8-Dashboard/gerar_dados.py                    → script que gera os extratos a partir dos CSVs brutos
-Submissão/Q8-Dashboard/README.md                         → este arquivo
-Submissão/Q8-Dashboard/LH_Nautical_2026_2_Dashboard.pdf  → PDF final, exportado do Looker Studio
+data/raw/1-lh_nautical_csv/                                    → CSVs originais do desafio (24 arquivos)
+data/processed/marts/dashboard/                                → 6 extratos analíticos, consumidos pelo painel
+Submissão/Q8-Dashboard/gerar_dados.py                          → script que gera os extratos a partir dos CSVs brutos
+Submissão/Q8-Dashboard/README.md                               → este arquivo
+Submissão/Q8-Dashboard/LH_Nautical_2026_2_Dashboard.pdf        → PDF final do painel, exportado do Looker Studio
+Submissão/Q8-Dashboard/LH_Nautical_2026_2_Apresentacao.pdf     → apresentação, versão de 8 slides
+Submissão/Q8-Dashboard/LH_Nautical_2026_2_Apresentacao_v2.pdf  → apresentação, versão de 10 slides
 ```
 
 Essa separação é uma decisão consciente de organização, não uma arquitetura adicionada para parecer mais sofisticada: `data/processed/marts/dashboard/` guarda dados prontos para consumo; `Submissão/Q8-Dashboard/` guarda código, documentação e o produto visual — inclusive depois do painel pronto, o PDF fica em `Submissão/Q8-Dashboard/`, não junto dos CSVs. Não existe camada `stage`/`intermediate` porque não há necessidade real dela neste desafio — ver "Linhagem dos dados" abaixo.

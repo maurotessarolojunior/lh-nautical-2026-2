@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .DS_Store
+
+# Material de trabalho da apresentação (fontes editáveis e guias de narração).
+# Os PDFs finais seguem versionados em Submissão/Q8-Dashboard/.
+/docs/
