@@ -10,10 +10,10 @@ Resolução do desafio Lighthouse 2026.2 (LH Nautical): um varejo náutico fict�
 data/raw
 ├── Q2/Q3 → PostgreSQL tipado → análises SQL (Q1, Q4 e Q5)
 ├── Q6/Q7 → pandas e scikit-learn → previsão e recomendação
-└── marts em CSV → Looker Studio → PDF
+└── gerar_dados.py → marts em CSV → Looker Studio → PDF
 ```
 
-Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reutilizam as mesmas regras de negócio já validadas, sem depender fisicamente um do outro: nenhum lê a saída do outro. O dashboard está concluído. Os seis extratos foram materializados e conferidos contra os números já aprovados nas questões, o painel foi construído no Looker Studio a partir deles, e o PDF final está em [`Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf`](Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf).
+Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reutilizam as mesmas regras de negócio já validadas, sem depender fisicamente um do outro: nenhum lê a saída do outro. O dashboard está concluído. Os seis extratos foram gerados e validados por `Submissão/Dashboard/gerar_dados.py` contra os números já aprovados nas questões, o painel foi construído no Looker Studio a partir deles, e o PDF final está em [`Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf`](Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf).
 
 ## Estrutura do repositório
 
@@ -32,7 +32,7 @@ Os três caminhos partem da mesma origem (`data/raw/1-lh_nautical_csv/`) e reuti
 │   ├── Q7/                          # sistema de recomendação
 │   ├── notebooks/                   # lh_nautical_mauro.ipynb, o raciocínio questão por questão
 │   ├── Apresentacao/                # PDF da apresentação de 10 slides
-│   └── Dashboard/                   # PDF final do painel
+│   └── Dashboard/                   # gerar_dados.py, README.md e PDF final do painel
 ├── requirements.txt
 └── README.md
 ```
@@ -81,7 +81,15 @@ python Submissão/Q7/7.1.py
 
 Diferente de Q1/Q4/Q5, essas duas questões **não dependem do PostgreSQL**: leem os CSVs brutos diretamente com pandas.
 
-### 5. Executar o notebook
+### 5. Preparar os dados do dashboard
+
+```bash
+python Submissão/Dashboard/gerar_dados.py
+```
+
+Também lê os CSVs brutos diretamente (sem PostgreSQL), reproduz as regras já validadas da Q1 e das Q4 a Q7, e grava os seis extratos em `data/processed/marts/dashboard/`. Cada extrato é conferido contra os valores já aprovados antes de ser gravado: se algum divergir, o script falha com mensagem explícita em vez de gravar um número errado em silêncio.
+
+### 6. Executar o notebook
 
 ```bash
 jupyter notebook Submissão/notebooks/lh_nautical_mauro.ipynb
@@ -103,13 +111,21 @@ Reiniciar o kernel e executar todas as células em ordem. As seções de Q1, Q4 
 
 ## Dashboard
 
-Painel construído no Looker Studio a partir dos seis extratos de `data/processed/marts/dashboard/`, versionados neste repositório e prontos para importar. PDF final: [`Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf`](Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf).
+Painel construído no Looker Studio a partir dos seis extratos de `data/processed/marts/dashboard/`, gerados e validados por `Submissão/Dashboard/gerar_dados.py`. O dicionário completo dos extratos está em [`Submissão/Dashboard/README.md`](Submissão/Dashboard/README.md).
+
+**Painel publicado:** [abrir no Looker Studio](https://datastudio.google.com/reporting/704e9400-e2d7-4603-9b67-a3585f3a890d). O acesso é público e dispensa conta Google.
+
+**Versão em PDF:** [`Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf`](Submissão/Dashboard/LH_Nautical_2026_2_Dashboard.pdf).
 
 Três páginas:
 
 1. **Visão geral de vendas.** Tamanho da operação (valor total, pedidos, clientes, ticket médio), evolução mensal, comparação por canal e distribuição por status de pedido.
 2. **Clientes e operação física.** Top 10 clientes fiéis por ticket médio, categorias mais consumidas por esse grupo, e a média de vendas físicas por dia da semana (com os dias sem venda incluídos no cálculo).
 3. **Previsão e recomendação.** Demanda real contra a prevista pelo baseline da Q6 (com o MAE), e o ranking de produtos mais similares ao item de referência da Q7.
+
+## Apresentação
+
+Os achados estão organizados em dez slides, cada um com a leitura de negócio correspondente: [`Submissão/Apresentacao/LH_Nautical_2026_2_Apresentacao.pdf`](Submissão/Apresentacao/LH_Nautical_2026_2_Apresentacao.pdf). O slide de fechamento reúne o link do painel publicado e o deste repositório.
 
 ## Decisões técnicas
 
@@ -120,8 +136,8 @@ Três páginas:
 - **Q6 usa o baseline obrigatório do enunciado** (média móvel de 3 meses) com avaliação temporal walk-forward: cada previsão usa só meses com data estritamente anterior a ela, sem embaralhar treino e teste.
 - **Q7 usa uma matriz binária cliente × produto e a similaridade de cosseno do scikit-learn** (`cosine_similarity`), sem implementar a fórmula manualmente. A exclusão do produto de referência do ranking é feita pelo `product_id`, nunca por comparação de valor de similaridade.
 - **Nenhum filtro de status de pedido foi inventado em Q4, Q5, Q6, Q7 ou no dashboard.** O enunciado não define quais status (`paid`, `confirmed`, `cancelled`, `draft`) devem entrar em cada análise, e criar um filtro não solicitado mudaria os resultados sem base no que foi pedido.
-- **O dashboard tem um caminho de dados próprio, separado do PostgreSQL.** Os seis extratos de `data/processed/marts/dashboard/` foram materializados a partir dos CSVs brutos, reproduzindo em pandas as mesmas regras já validadas na Q1 e nas Q4 a Q7, sem depender do banco estar de pé. Não há camada `stage`/`intermediate`: `data/raw` já preserva a origem, a Q3 já materializa uma ingestão tipada no PostgreSQL, e as transformações do dashboard são pequenas o bastante para viver, legíveis, dentro de um único script.
-- **Cada extrato foi conferido contra os números já aprovados nas questões antes de virar CSV.** A rotina de preparação falha com mensagem explícita quando algum valor diverge, em vez de gravar um número errado em silêncio.
+- **O dashboard tem um caminho de dados próprio, separado do PostgreSQL.** `Submissão/Dashboard/gerar_dados.py` lê os CSVs brutos diretamente e materializa os seis extratos em `data/processed/marts/dashboard/`, reproduzindo em pandas as mesmas regras já validadas na Q1 e nas Q4 a Q7, sem depender do banco estar de pé. Não há camada `stage`/`intermediate`: `data/raw` já preserva a origem, a Q3 já materializa uma ingestão tipada no PostgreSQL, e as transformações do dashboard são pequenas o bastante para viver, legíveis, dentro de um único script.
+- **Cada extrato é conferido contra os números já aprovados nas questões antes de virar CSV.** O gerador falha com mensagem explícita quando algum valor diverge, em vez de gravar um número errado em silêncio.
 
 ## Tecnologias utilizadas
 
