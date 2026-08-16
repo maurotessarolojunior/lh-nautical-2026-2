@@ -40,9 +40,9 @@ data/raw/1-lh_nautical_csv/
 └── Submissão/Dashboard/gerar_dados.py → data/processed/marts/dashboard/*.csv → Looker Studio
 ```
 
-`Submissão/Dashboard/gerar_dados.py` **lê os CSVs brutos diretamente**, sem passar pelo PostgreSQL e sem chamar os scripts de `Submissão/`. Ele reproduz em pandas as mesmas regras de negócio já testadas e aprovadas na Q1 e nas Q4–Q7 (mesmas chaves de junção, mesmos filtros, mesma granularidade, mesmo desempate, mesmo baseline walk-forward da Q6, mesma matriz binária e cosseno da Q7), para que o dashboard não dependa do banco estar de pé nem da execução prévia dos scripts das submissões. Por isso o script valida cada extrato contra os valores já aprovados antes de gravar qualquer CSV: se algo divergir, ele falha com uma mensagem clara em vez de gravar um número errado silenciosamente.
+`Submissão/Dashboard/gerar_dados.py` **lê os CSVs brutos diretamente**, sem passar pelo PostgreSQL e sem chamar os scripts de `Submissão/`. Ele reproduz em pandas as mesmas regras de negócio já testadas e aprovadas na Q1 e nas Q4–Q7: mesmas chaves de junção, mesmos filtros, mesma granularidade, mesmo desempate, mesmo baseline walk-forward da Q6, mesma matriz binária e cosseno da Q7. Assim o dashboard fica independente do banco estar de pé e da execução prévia dos scripts das submissões. Por isso o script valida cada extrato contra os valores já aprovados antes de gravar qualquer CSV: se algo divergir, ele falha com uma mensagem clara em vez de gravar um número errado silenciosamente.
 
-Não há `stage`/`intermediate` porque, neste desafio, essas camadas não teriam função real: `data/raw` já preserva a origem sem tratamento; a Q3 já materializa uma camada de ingestão tipada e fiel à origem no PostgreSQL; e as transformações necessárias ao dashboard são pequenas o bastante para viver inteiras, de forma legível, dentro de `gerar_dados.py`. Uma evolução futura com uma ferramenta como dbt Core poderia unificar os três caminhos sobre o PostgreSQL, mas isso é um estudo pós-entrega, fora do escopo desta implementação.
+Não há `stage`/`intermediate` porque, neste desafio, essas camadas não teriam função real. `data/raw` já preserva a origem sem tratamento, a Q3 já materializa uma camada de ingestão tipada e fiel à origem no PostgreSQL, e as transformações necessárias ao dashboard são pequenas o bastante para viver inteiras, de forma legível, dentro de `gerar_dados.py`. Uma evolução futura com uma ferramenta como dbt Core poderia unificar os três caminhos sobre o PostgreSQL, mas isso é um estudo pós-entrega, fora do escopo desta implementação.
 
 ## Como regenerar os extratos
 
@@ -84,7 +84,7 @@ Não há junção com `order_items`, o que evita repetir pedido e inflar `valor_
 | `diversidade_categorias` | inteiro | categorias distintas compradas (via `order_items → product_variants → products`) |
 | `posicao` | inteiro | 1 a 10, por `ticket_medio` desc., desempate por `customer_id` asc. |
 
-Filtro: `diversidade_categorias >= 13`. Faturamento/frequência vêm só de `orders`, nunca depois de um `JOIN` com itens.
+Filtro: `diversidade_categorias >= 13`. Faturamento e frequência são calculados só sobre `orders`, antes de qualquer `JOIN` com itens.
 
 ### `categorias_clientes_fieis.csv`: uma linha por categoria comprada pelo Top 10
 
@@ -92,7 +92,7 @@ Filtro: `diversidade_categorias >= 13`. Faturamento/frequência vêm só de `ord
 |---|---|---|
 | `category_id` | inteiro | `categories.id` |
 | `categoria` | texto | `categories.name` |
-| `quantidade_itens` | inteiro | soma de `order_items.quantity` (nunca contagem de linha), restrita aos clientes do Top 10 |
+| `quantidade_itens` | inteiro | soma da quantidade em `order_items.quantity`, restrita aos clientes do Top 10 |
 | `posicao` | inteiro | 1 a 14, por `quantidade_itens` desc. |
 
 ### `vendas_dia_semana.csv`: uma linha por dia da semana (7)
@@ -105,7 +105,7 @@ Filtro: `diversidade_categorias >= 13`. Faturamento/frequência vêm só de `ord
 | `dias_calendario` | inteiro | quantidade de ocorrências do dia da semana no período |
 | `dias_sem_venda` | inteiro | dias com venda física igual a zero |
 | `valor_total` | decimal | soma das vendas físicas do dia da semana |
-| `destaque` | texto | `"Pior média"` para o dia de menor `media_vendas`, `"Demais dias"` para os outros, calculado pelo código, nunca escrito manualmente |
+| `destaque` | texto | `"Pior média"` para o dia de menor `media_vendas`, `"Demais dias"` para os outros, calculado pelo código, sem edição manual |
 
 Calendário completo entre o mínimo e o máximo de `placed_at` (sem lacuna) construído antes da média, de modo que dias sem venda física entram como zero em vez de desaparecer do cálculo.
 
@@ -151,4 +151,4 @@ Antes de gravar qualquer CSV, `gerar_dados.py` confere, com `assert` e `math.isc
 **Proteções específicas antes dos merges (Q6 e Q7):**
 
 - Q6: `product_id` do nome "Bússola de Bordo 702" precisa ser exatamente `[74, 240]`, e os `product_variant_id` relacionados exatamente `[147, 148, 486]`. O script falha com mensagem clara antes de qualquer merge se divergir.
-- Q7: o nome "Motor de Popa 1949" precisa corresponder a exatamente um produto (nunca `.iloc[0]` sem checar cardinalidade); o `product_id` encontrado precisa ser `180` e precisa existir nas colunas da matriz binária antes de calcular a similaridade.
+- Q7: o nome "Motor de Popa 1949" precisa corresponder a exatamente um produto, com checagem de cardinalidade em vez de `.iloc[0]` direto; o `product_id` encontrado precisa ser `180` e precisa existir nas colunas da matriz binária antes de calcular a similaridade.
